@@ -1,0 +1,3 @@
+[submodule "unison-llm-support"]
+	path = unison-llm-support
+	url = git@github.com:unisoncomputing/unison-llm-support.git

@@ -1,0 +1,129 @@
+eventParser.lexer.patterns.attribute : Pattern Text
+eventParser.lexer.patterns.attribute =
+  use Pattern capture join optional
+  join
+    [ nameTokens.name
+    , optional (join [capture patterns.eq, attValue])
+    ]
+
+eventParser.parse : Text ->{Stream XMLEvent} ()
+eventParser.parse input =
+  use Nat + -
+  use Pattern capture run
+  use Text != ++ == size
+  decodeText index encodedText = Text index (decodeEntities encodedText)
+  decodeAttribute index key encodedValue = Attribute index key (decodeEntities encodedValue)
+  maybeDTD index next = match run externalDoctype next with
+    Some ([doctype], remainder) ->
+      emit (Doctype index doctype)
+      findOpeningTag (index + size next - size remainder) remainder
+    _                           ->
+      match run (capture internalDoctypeStart) next with
+        Some ([dtdStart], remainder) ->
+          go acc next = match run (capture (charUntil Class.any "]")) next with
+            Some ([dtdText], remainder) ->
+              match run (capture (Pattern.join [literal "]", Pattern.optional whiteSpace, literal ">"])) remainder with
+                Some ([dtdEnd], remainder) ->
+                  dtd = acc ++ dtdText ++ dtdEnd
+                  emit (Doctype index dtd)
+                  findOpeningTag (index + size dtd) remainder
+                x                          -> go (acc ++ dtdText) remainder
+            _                           -> emit (Error index "Malformed DTD")
+          go dtdStart remainder
+        _                            -> emit (Error index "Malformed DTD")
+  findOpeningTag index input = match Text.findFirst (fromChar ?<) input with
+    (text, "")   ->
+      ignore "No more tags. All that remains is text"
+      when (text != "") do emit (decodeText index text)
+    (text, next) ->
+      ignore "Found a <. Maybe this is a tag."
+      indexOfOpeninTag = index + size text
+      when (text != "") do
+        ignore "There is text before the tag."
+        emit (decodeText indexOfOpeninTag text)
+      identifyOpening indexOfOpeninTag next
+  identifyOpening index next = match Text.take 1 (Text.drop 1 next) with
+    "!" ->
+      ignore "Maybe a comment, cdata, or DTD"
+      if isMatch (literal "<!--") next then
+        match run patterns.comment next with
+          Some ([comment], remainder) ->
+            emit (Comment index comment)
+            findOpeningTag (index + size next - size remainder) remainder
+          _                           -> emit (Error index "Malformed comment")
+      else
+        if isMatch (literal "<![CDATA[") next then
+          match run patterns.cdata next with
+            Some ([cdata], remainder) ->
+              emit (CData index cdata)
+              findOpeningTag (index + size next - size remainder) remainder
+            _                         -> emit (Error index "Malformed CDATA")
+        else
+          if isMatch (literal "<!DOCTYPE") next then
+            ignore "Must be a DTD"
+            maybeDTD index next
+          else emit (Error index "Malformed meta tag")
+    "?" ->
+      if isMatch (literal "<?xml") next then
+        match run xmlDecl next with
+          Some ([version, rawEncoding, rawSdDecl], remainder) ->
+            toDefault! (do emit (Error index "Malformed encoding")) do
+              encoding = match run encodingDecl rawEncoding with
+                Some ([enc], _) -> enc
+                None            -> ""
+                _               -> abort
+              standalone = match run patterns.sdDecl rawSdDecl with
+                Some ([sdDecl], _) -> sdDecl == "yes"
+                _                  -> false
+              emit (XMLDecl index version encoding standalone)
+              findOpeningTag (index + size next - size remainder) remainder
+          _                                                   -> emit (Error index "Malformed XML declaration")
+      else
+        match run processing next with
+          Some ([piTarget, piData], remainder) ->
+            emit (Processing index piTarget piData)
+            findOpeningTag (index + size next - size remainder) remainder
+          _                                    -> emit (Error index "Malformed processing instruction")
+    _   ->
+      ignore "Must be an element tag"
+      maybeElemTag index next
+  maybeElemTag index next =
+    ignore "Looking for an element tag"
+    match run stag next with
+      Some (tagName +: attributes, remainder) ->
+        emit (OpenTag index tagName)
+        go ix = cases
+          [sp1, k, eq, v] ++ atts ->
+            emit (decodeAttribute (ix + size sp1) k v)
+            go (ix + size sp1 + size k + size eq + size v) atts
+          [sp1, k] ++ atts ->
+            emit (decodeAttribute (ix + size sp1) k k)
+            go (ix + size sp1 + size k) atts
+          _                       -> ()
+        go (index + size tagName + 1) attributes
+        findOpeningTag (index + size next - size remainder) remainder
+      _                                       ->
+        match run emptyElemTag next with
+          Some (tagName +: attributes, remainder) ->
+            emit (OpenTag index tagName)
+            go ix = cases
+              [sp1, k, eq, v] ++ atts ->
+                emit (Attribute (ix + size sp1) k v)
+                go (ix + size sp1 + size k + size eq + size v) atts
+              [sp1, k] ++ atts ->
+                emit (Attribute (ix + size sp1) k k)
+                go (ix + size sp1 + size k) atts
+              _                       -> ()
+            go (index + size tagName + 1) attributes
+            emit (CloseTag index tagName)
+            findOpeningTag (index + size next - size remainder) remainder
+          _                                       ->
+            match run etag next with
+              Some ([tagName], remainder) ->
+                emit (CloseTag index tagName)
+                findOpeningTag (index + size next - size remainder) remainder
+              _                           -> emit (Error index "Malformed element tag")
+  sz = size input
+  emit (DocumentStart sz)
+  findOpeningTag 0 input
+  emit (DocumentEnd sz)
