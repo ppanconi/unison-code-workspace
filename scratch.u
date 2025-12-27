@@ -1,0 +1,68 @@
+
+emitBetween : (a -> Boolean) -> (a -> Boolean) -> '{g, Stream a} r -> '{g, Stream a} r
+emitBetween isA isB s = 
+    s |> (Stream.scan (o ev -> match o with 
+          (false, _) -> if isA ev then (true, Some ev) else (false, None)
+          (true, _) -> if isB ev then (false, Some ev) else (true, Some ev)
+              ) (false, None)
+        )
+      |> (Stream.filter (cases (_, Some _ ) -> true 
+                               _ -> false))    
+      |> (Stream.map ( cases (_, Some ev) -> ev
+                             _ -> bug "not possible"))                         
+
+isBOpen : XMLEvent -> Boolean
+isBOpen = cases OpenTag _ "b" -> true 
+                _ -> false
+
+isBClose : XMLEvent -> Boolean
+isBClose = cases CloseTag _ "b" -> true 
+                 _ -> false
+
+> Stream.toList (
+  (do eventParser.parse "<a><b><d at1 at2/></b></a>") |> (emitBetween isBOpen isBClose)
+  )
+
+{- Testing plan:
+- Example tests: parse "<input disabled />", "<option selected>", and "<input disabled checked>" and assert each bare attribute emits Attribute _ name name.
+- Property-based test: for a small set of valid names, parsing <x NAME> yields an Attribute with value equal to the name.
+-}
+
+eventParser.tests.booleanAttributes.attributesFrom : Text -> [(Text, Text)]
+eventParser.tests.booleanAttributes.attributesFrom xml =
+  events =
+    Stream.toList
+      ((do eventParser.parse xml)
+        |> Stream.filter (cases
+          Attribute _ _ _ -> true
+          _ -> false))
+  events
+    |> List.map (cases
+      Attribute _ key value -> (key, value)
+      _ -> bug "attribute filter should only keep Attribute events")
+
+test> eventParser.tests.booleanAttributes.examples = test.verify do
+  ensureEqual
+    (eventParser.tests.booleanAttributes.attributesFrom "<input disabled />")
+    [("disabled", "disabled")]
+  ensureEqual
+    (eventParser.tests.booleanAttributes.attributesFrom "<option selected>")
+    [("selected", "selected")]
+  ensureEqual
+    (eventParser.tests.booleanAttributes.attributesFrom "<input disabled checked>")
+    [("disabled", "disabled"), ("checked", "checked")]
+
+test> eventParser.tests.booleanAttributes.props = test.verify do
+  use Each each
+  use Text ++
+  names =
+    [ "disabled"
+    , "checked"
+    , "selected"
+    , "readonly"
+    , "multiple"
+    , "autofocus"
+    ]
+  name = each names
+  xml = "<x " ++ name ++ ">"
+  ensureEqual (eventParser.tests.booleanAttributes.attributesFrom xml) [(name, name)]
