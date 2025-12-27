@@ -10,7 +10,7 @@ eventParser.parse : Text ->{Stream XMLEvent} ()
 eventParser.parse input =
   use Nat + -
   use Pattern capture run
-  use Text != ++ == size
+  use Text != ++ == size contains
   decodeText index encodedText = Text index (decodeEntities encodedText)
   decodeAttribute index key encodedValue = Attribute index key (decodeEntities encodedValue)
   maybeDTD index next = match run externalDoctype next with
@@ -93,13 +93,15 @@ eventParser.parse input =
       Some (tagName +: attributes, remainder) ->
         emit (OpenTag index tagName)
         go ix = cases
-          [sp1, k, eq, v] ++ atts ->
-            emit (decodeAttribute (ix + size sp1) k v)
-            go (ix + size sp1 + size k + size eq + size v) atts
-          [sp1, k] ++ atts ->
-            emit (decodeAttribute (ix + size sp1) k k)
-            go (ix + size sp1 + size k) atts
-          _                       -> ()
+          [sp1, k] ++ rest ->
+            match rest with
+              [eq, v] ++ atts | contains "=" eq ->
+                emit (decodeAttribute (ix + size sp1) k v)
+                go (ix + size sp1 + size k + size eq + size v) atts
+              _ ->
+                emit (decodeAttribute (ix + size sp1) k k)
+                go (ix + size sp1 + size k) rest
+          _ -> ()
         go (index + size tagName + 1) attributes
         findOpeningTag (index + size next - size remainder) remainder
       _                                       ->
@@ -107,13 +109,15 @@ eventParser.parse input =
           Some (tagName +: attributes, remainder) ->
             emit (OpenTag index tagName)
             go ix = cases
-              [sp1, k, eq, v] ++ atts ->
-                emit (Attribute (ix + size sp1) k v)
-                go (ix + size sp1 + size k + size eq + size v) atts
-              [sp1, k] ++ atts ->
-                emit (Attribute (ix + size sp1) k k)
-                go (ix + size sp1 + size k) atts
-              _                       -> ()
+              [sp1, k] ++ rest ->
+                match rest with
+                  [eq, v] ++ atts | contains "=" eq ->
+                    emit (Attribute (ix + size sp1) k v)
+                    go (ix + size sp1 + size k + size eq + size v) atts
+                  _ ->
+                    emit (Attribute (ix + size sp1) k k)
+                    go (ix + size sp1 + size k) rest
+              _ -> ()
             go (index + size tagName + 1) attributes
             emit (CloseTag index tagName)
             findOpeningTag (index + size next - size remainder) remainder
