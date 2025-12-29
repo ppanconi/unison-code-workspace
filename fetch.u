@@ -1,0 +1,84 @@
+type fetch.Params =
+  { league : [Nat]
+  , season : [Text]
+  , team : [Nat]
+  , opponent : [Nat]
+  , outcome : Optional Text
+  , location : Optional Text
+  , from : Text
+  , to : Text
+  , limit : Nat
+  }
+
+fetch.paramsQuery : fetch.Params -> Query
+fetch.paramsQuery params =
+  use IO.net.URI.Query addParam empty
+  addList key values query =
+    List.foldLeft (q v -> addParam key v q) query values
+  addOptional key opt query = match opt with
+    None -> query
+    Some value -> addParam key value query
+  empty
+    |> addList "league[]" (List.map Nat.toText (Params.league params))
+    |> addList "season[]" (Params.season params)
+    |> addList "team[]" (List.map Nat.toText (Params.team params))
+    |> addList "opponent[]" (List.map Nat.toText (Params.opponent params))
+    |> addOptional "outcome" (Params.outcome params)
+    |> addOptional "location" (Params.location params)
+    |> addParam "from" (Params.from params)
+    |> addParam "to" (Params.to params)
+    |> addParam "limit" (Nat.toText (Params.limit params))
+
+fetch.uri : fetch.Params -> URI
+fetch.uri params =
+  use IO.net.HostName HostName
+  use IO.net.URI
+  use IO.net.URI.Authority fromHost
+  path = Path.root / "statistiche-squadra-partita-per-partita" / ""
+  authority = fromHost (HostName "hackastat.eu")
+  query = fetch.paramsQuery params |> RawQuery.fromQuery
+  URI Scheme.https (Some authority) path query Fragment.empty
+
+fetch.get : fetch.Params ->{IO, Exception} HttpResponse
+fetch.get params =
+  use lib.unison_http_11_0_0.client Client
+  use lib.unison_http_11_0_0.client Client.Config
+  use lib.unison_http_11_0_0.client Http
+  randomRun = abilities.Random.run
+  threadsRun = lib.unison_http_11_0_0.lib.systemfw_concurrent_7_3_1.Threads.run
+  config =
+    Config.default
+      |> Config.timeout.set (time.Duration.seconds +20)
+  randomRun do
+    threadsRun do
+      client = Client.start config
+      Http.runPooled client do
+        Http.get (fetch.uri params)
+
+fetch.page : fetch.Params ->{IO, Exception} Text
+fetch.page params =
+  use lib.unison_http_11_0_0.HttpResponse bodyText
+  bodyText (fetch.get params)
+
+{- Testing plan:
+- I/O test: build fetch.Params with the provided values, call fetch.get with a timeout, and ensure HttpResponse.isSuccess is true.
+- Skip property-based tests due to live HTTP/network variability.
+-}
+
+fetch.tests.getIsSuccess : '{IO, Exception} [Result]
+fetch.tests.getIsSuccess = do
+    params =
+      Params.Params
+        [2]
+        ["2023-2024"]
+        [66]
+        [55]
+        None
+        None
+        "2023-09-01"
+        "2024-08-01"
+        100
+    resp = fetch.get params
+    check (isSuccess resp)
+
+      

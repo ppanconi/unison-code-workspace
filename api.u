@@ -1,0 +1,258 @@
+use lib.baccata_schemas_0_1_0.schemas compileFull
+use lib.baccata_schemas_0_1_0.schemas.Schema
+use lib.baccata_schemas_0_1_0.schemas.abilities.ProductSchematic requiredField optionalField
+use lib.baccata_schemas_0_1_0.schemas.json JsonReader JsonWriter jsonReaderCompiler jsonWriterCompiler
+use lib.unison_http_11_0_0.HttpResponse.Status Status
+use lib.base.abilities.Throw toEither
+use lib.unison_routes_7_0_2.Route
+use lib.unison_routes_7_0_2.lib.unison_uri_parser_2_1_5.Parser
+
+
+type api.RowsResponse = { rows : [data.Row] }
+
+type api.ErrorResponse = { error : Text }
+
+api.paramsSchema : Schema fetch.Params
+api.paramsSchema =
+  Schema.product do
+    league = requiredField (Schema.list Schema.nat) "league" Params.league
+    season = requiredField (Schema.list Schema.text) "season" Params.season
+    team = requiredField (Schema.list Schema.nat) "team" Params.team
+    opponent = requiredField (Schema.list Schema.nat) "opponent" Params.opponent
+    outcome = optionalField Schema.text "outcome" Params.outcome
+    location = optionalField Schema.text "location" Params.location
+    from = requiredField Schema.text "from" Params.from
+    to = requiredField Schema.text "to" Params.to
+    limit = requiredField Schema.nat "limit" Params.limit
+    ProductSchematic.absorb do
+      Params.Params
+        league()
+        season()
+        team()
+        opponent()
+        outcome()
+        location()
+        from()
+        to()
+        limit()
+
+api.rowSchema : Schema data.Row
+api.rowSchema =
+  Schema.product do
+    optText name accessor = optionalField Schema.text name accessor
+    optNat name accessor = optionalField Schema.nat name accessor
+    optInt name accessor = optionalField Schema.int name accessor
+    optFloat name accessor = optionalField Schema.float name accessor
+
+    team = optText "team" Row.team
+    opponent = optText "opponent" Row.opponent
+    league = optText "league" Row.league
+    season = optText "season" Row.season
+    matchDate = optText "matchDate" Row.matchDate
+    matchRound = optNat "matchRound" Row.matchRound
+    phase = optText "phase" Row.phase
+    location = optText "location" Row.location
+    outcome = optText "outcome" Row.outcome
+    min = optNat "min" Row.min
+    pts = optNat "pts" Row.pts
+    twoPm = optNat "twoPm" Row.twoPm
+    twoPa = optNat "twoPa" Row.twoPa
+    twoPct = optFloat "twoPct" Row.twoPct
+    threePm = optNat "threePm" Row.threePm
+    threePa = optNat "threePa" Row.threePa
+    threePct = optFloat "threePct" Row.threePct
+    fgm = optNat "fgm" Row.fgm
+    fga = optNat "fga" Row.fga
+    fgPct = optFloat "fgPct" Row.fgPct
+    ftm = optNat "ftm" Row.ftm
+    fta = optNat "fta" Row.fta
+    ftPct = optFloat "ftPct" Row.ftPct
+    orb = optNat "orb" Row.orb
+    drb = optNat "drb" Row.drb
+    trb = optNat "trb" Row.trb
+    ast = optNat "ast" Row.ast
+    tov = optNat "tov" Row.tov
+    st = optNat "st" Row.st
+    blk = optNat "blk" Row.blk
+    pf = optNat "pf" Row.pf
+    df = optNat "df" Row.df
+    eff = optNat "eff" Row.eff
+    plusMinus = optInt "plusMinus" Row.plusMinus
+    poss = optNat "poss" Row.poss
+    pace = optFloat "pace" Row.pace
+    offRtg = optFloat "offRtg" Row.offRtg
+    defRtg = optFloat "defRtg" Row.defRtg
+    netRtg = optFloat "netRtg" Row.netRtg
+    efgPct = optFloat "efgPct" Row.efgPct
+    tsPct = optFloat "tsPct" Row.tsPct
+    rimFreq = optFloat "rimFreq" Row.rimFreq
+    rimPps = optFloat "rimPps" Row.rimPps
+    paintFreq = optFloat "paintFreq" Row.paintFreq
+    paintPps = optFloat "paintPps" Row.paintPps
+    midFreq = optFloat "midFreq" Row.midFreq
+    midPps = optFloat "midPps" Row.midPps
+    c3Freq = optFloat "c3Freq" Row.c3Freq
+    c3Pps = optFloat "c3Pps" Row.c3Pps
+    l3Freq = optFloat "l3Freq" Row.l3Freq
+    l3Pps = optFloat "l3Pps" Row.l3Pps
+    ftFreq = optFloat "ftFreq" Row.ftFreq
+    tovPct = optFloat "tovPct" Row.tovPct
+    lTovPct = optFloat "lTovPct" Row.lTovPct
+    dTovPct = optFloat "dTovPct" Row.dTovPct
+    astPct = optFloat "astPct" Row.astPct
+    ast2pPct = optFloat "ast2pPct" Row.ast2pPct
+    ast3pPct = optFloat "ast3pPct" Row.ast3pPct
+    astFtPct = optFloat "astFtPct" Row.astFtPct
+    astRatio = optFloat "astRatio" Row.astRatio
+    orbPct = optFloat "orbPct" Row.orbPct
+    orb2pPct = optFloat "orb2pPct" Row.orb2pPct
+    orb3pPct = optFloat "orb3pPct" Row.orb3pPct
+    orbFtPct = optFloat "orbFtPct" Row.orbFtPct
+    drbPct = optFloat "drbPct" Row.drbPct
+    drb2pPct = optFloat "drb2pPct" Row.drb2pPct
+    drb3pPct = optFloat "drb3pPct" Row.drb3pPct
+    drbFtPct = optFloat "drbFtPct" Row.drbFtPct
+    trbPct = optFloat "trbPct" Row.trbPct
+    stPct = optFloat "stPct" Row.stPct
+    blkPct = optFloat "blkPct" Row.blkPct
+    blk2pPct = optFloat "blk2pPct" Row.blk2pPct
+    blk3pPct = optFloat "blk3pPct" Row.blk3pPct
+    kills = optNat "kills" Row.kills
+    ProductSchematic.absorb do
+      Row.Row
+        team()
+        opponent()
+        league()
+        season()
+        matchDate()
+        matchRound()
+        phase()
+        location()
+        outcome()
+        min()
+        pts()
+        twoPm()
+        twoPa()
+        twoPct()
+        threePm()
+        threePa()
+        threePct()
+        fgm()
+        fga()
+        fgPct()
+        ftm()
+        fta()
+        ftPct()
+        orb()
+        drb()
+        trb()
+        ast()
+        tov()
+        st()
+        blk()
+        pf()
+        df()
+        eff()
+        plusMinus()
+        poss()
+        pace()
+        offRtg()
+        defRtg()
+        netRtg()
+        efgPct()
+        tsPct()
+        rimFreq()
+        rimPps()
+        paintFreq()
+        paintPps()
+        midFreq()
+        midPps()
+        c3Freq()
+        c3Pps()
+        l3Freq()
+        l3Pps()
+        ftFreq()
+        tovPct()
+        lTovPct()
+        dTovPct()
+        astPct()
+        ast2pPct()
+        ast3pPct()
+        astFtPct()
+        astRatio()
+        orbPct()
+        orb2pPct()
+        orb3pPct()
+        orbFtPct()
+        drbPct()
+        drb2pPct()
+        drb3pPct()
+        drbFtPct()
+        trbPct()
+        stPct()
+        blkPct()
+        blk2pPct()
+        blk3pPct()
+        kills()
+
+api.rowsResponseSchema : Schema api.RowsResponse
+api.rowsResponseSchema =
+  Schema.product do
+    rows = requiredField (Schema.list api.rowSchema) "rows" RowsResponse.rows
+    ProductSchematic.absorb do RowsResponse.RowsResponse rows()
+
+api.errorResponseSchema : Schema api.ErrorResponse
+api.errorResponseSchema =
+  Schema.product do
+    error = requiredField Schema.text "error" ErrorResponse.error
+    ProductSchematic.absorb do ErrorResponse.ErrorResponse error()
+
+api.paramsReader : JsonReader fetch.Params
+api.paramsReader =
+  compileFull jsonReaderCompiler api.paramsSchema
+
+api.paramsDecoder : '{Decoder} fetch.Params
+api.paramsDecoder =
+  match api.paramsReader with
+    JsonReader.JsonReader decoder -> decoder
+
+api.rowsResponseWriter : JsonWriter api.RowsResponse
+api.rowsResponseWriter =
+  compileFull jsonWriterCompiler api.rowsResponseSchema
+
+api.errorResponseWriter : JsonWriter api.ErrorResponse
+api.errorResponseWriter =
+  compileFull jsonWriterCompiler api.errorResponseSchema
+
+api.statsQuery : '{IO, Exception, Route} ()
+api.statsQuery = do
+  use Parser /
+  Route.noCapture POST (Parser.s "stats" / Parser.s "query")
+  result =
+    toEither do
+      Exception.toThrow do
+        params = Route.request.body.decodeJson api.paramsDecoder
+        html = fetch.page params
+        rows = match data.rowsFromHtml html with
+          Left err -> Exception.raiseFailure (typeLink Text) err ()
+          Right rs -> rs
+        rows
+  match result with
+    Left failure ->
+      response = ErrorResponse.ErrorResponse (Failure.message failure)
+      status = Status 500 "Internal Server Error"
+      Route.respond.status.json status (JsonWriter.run api.errorResponseWriter response)
+    Right rows ->
+      response = RowsResponse.RowsResponse rows
+      Route.respond.ok.json (JsonWriter.run api.rowsResponseWriter response)
+
+api.routes : '{IO, Route, Exception, Threads} ()
+api.routes =
+  api.statsQuery
+
+api.main : '{IO, Exception} ()
+api.main = do
+  stop = Route.serveSimple api.routes 8888
+  printLine "Api Server running on port 8888. Press <enter> to stop."
+  _ = readLine()
+  stop()

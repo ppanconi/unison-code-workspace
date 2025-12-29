@@ -40,3 +40,28 @@ args = ["mcp"]
     55 | test> eventParser.tests.booleanAttributes.props = test.verify do
     
     ✅ Passed Passed
+
+## API example
+
+Run the server:
+
+```
+ucm> update api.u
+ucm> run api.main
+```
+
+Query the API:
+
+```sh
+curl -sS -X POST http://localhost:8888/stats/query \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "league": [2],
+    "season": ["2023-2024"],
+    "team": [66],
+    "opponent": [55],
+    "from": "2023-09-01",
+    "to": "2024-08-01",
+    "limit": 100
+  }'
+```

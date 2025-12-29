@@ -1,0 +1,349 @@
+data.Row.doc = {{
+{type data.Row} represents one row from the first table whose id starts
+with "team-". Each field is Optional; parsing failures or empty cells
+become None. Percent values are stored in the 0-1 range.
+
+# Legend and formulas
+
+MIN: minuti giocati
+PTS: punti segnati
+
+2PM: canestri da 2 realizzati
+2PA: tiri da 2 tentati
+2P%: percentuale da 2 punti
+
+3PM: canestri da 3 realizzati
+3PA: tiri da 3 tentati
+3P%: percentuale da 3 punti
+
+FGM: canestri dal campo realizzati
+FGA: tiri dal campo tentati
+FG%: percentuale dal campo
+
+FTM: tiri liberi realizzati
+FTA: tiri liberi tentati
+FT%: percentuale ai liberi
+
+ORB: rimbalzi offensivi
+DRB: rimbalzi difensivi
+TRB: rimbalzi totali
+
+AST: assist
+TOV: palle perse
+ST: palle rubate
+BLK: stoppate
+PF: falli commessi
+DF: falli subiti
++/-: plus/minus
+
+POSS: possessi giocati
+PACE: ritmo | POSS / MIN x 40
+
+OFF RTG: punti segnati per 100 possessi | PTS / POSS x 100
+DEF RTG: punti concessi per 100 possessi | OPP PTS / OPP POSS x 100
+NET RTG: differenza tra offensive e defensive rating | OFF RTG - DEF RTG
+
+EFG%: effective field goal percentage | (2PM + 1.5 x 3PM) / FGA x 100
+TS%: true shooting percentage | PTS / (2 x (FGA + FTA 2/2 + FTA 3/3)) x 100
+
+RIM FREQ: frequenza tiri al ferro | RIMA / PLAYS x 100
+RIM PPS: punti per tiro al ferro | RIMM / RIMA x 2
+
+PAINT FREQ: frequenza tiri in area (non ferro) | PAINTA / PLAYS x 100
+PAINT PPS: punti per tiro in area | PAINTM / PAINTA x 2
+
+MID FREQ: frequenza tiri dalla media | MIDA / PLAYS x 100
+MID PPS: punti per tiro dalla media | MIDM / MIDA x 2
+
+C3 FREQ: frequenza corner 3 | C3A / PLAYS x 100
+C3 PPS: punti per corner 3 | C3M / C3A x 3
+
+L3 FREQ: frequenza above-the-break 3 | L3A / PLAYS x 100
+L3 PPS: punti per above-the-break 3 | L3M / L3A x 3
+
+FT FREQ: frequenza viaggi in lunetta | (FTA 2/2 + FTA 3/3) / PLAYS x 100
+
+TOV%: percentuale di palle perse | TOV / PLAYS x 100
+LTOV%: percentuale di palle perse vive | LTOV / PLAYS x 100
+DTOV%: percentuale di palle perse morte | DTOV / PLAYS x 100
+
+AST%: percentuale di conclusioni assistite (tiri liberi compresi)
+  | (ASTED 2FG + ASTED 3FG + ASTED FT) /
+    (FGM + (FTA 2)/2 + (FTA 3)/3 - FT 0/2 - FT 0/3) x 100
+AST% (2P): percentuale canestri da 2 assistiti | ASTED 2FG / 2PM x 100
+AST% (3P): percentuale canestri da 3 assistiti | ASTED 3FG / 3PM x 100
+AST% (FT): percentuale viaggi in lunetta assistiti
+  | ASTED FT / ((FTA 2)/2 + (FTA 3)/3 - FT 0/2 - FT 0/3) x 100
+AST RATIO: assist per giocate | AST / PLAYS x 100
+
+ORB%: percentuale rimbalzo offensivo | ORB / (ORB + OPP DRB) x 100
+DRB%: percentuale rimbalzo difensivo | DRB / (DRB + OPP ORB) x 100
+TRB%: percentuale rimbalzo totale | TRB / (TRB + OPP TRB) x 100
+
+ORB% (2P): percentuale rimbalzo offensivo su tiri da 2
+  | ORB 2P / (ORB 2P + OPP DRB 2P) x 100
+DRB% (2P): percentuale rimbalzo difensivo su tiri da 2
+  | DRB 2P / (DRB 2P + OPP ORB 2P) x 100
+ORB% (3P): percentuale rimbalzo offensivo su tiri da 3
+  | ORB 3P / (ORB 3P + OPP DRB 3P) x 100
+DRB% (3P): percentuale rimbalzo difensivo su tiri da 3
+  | DRB 3P / (DRB 3P + OPP ORB 3P) x 100
+ORB% (FT): percentuale rimbalzo offensivo dopo tiri liberi
+  | ORB FT / (ORB FT + OPP DRB FT) x 100
+DRB% (FT): percentuale rimbalzo difensivo dopo tiri liberi
+  | DRB FT / (DRB FT + OPP ORB FT) x 100
+
+ST%: recuperi per possesso avversario | ST / OPP POSS x 100
+BLK%: stoppate per FGA avversario | BLK / OPP FGA x 100
+BLK% (2P): stoppate su tiri da 2 avversari | BLK 2P / OPP 2PA x 100
+BLK% (3P): stoppate su tiri da 3 avversari | BLK 3P / OPP 3PA x 100
+
+KILLS: numero di tre stop difensivi consecutivi
+
+PLAYS: quantita totale di chance di tiro (in altre parole POSS + OR)
+  | FGA + (FTA 2)/2 + (FTA 3)/3 + TOV
+FTA 2: liberi tentati per fallo su tiro da due (non and-one)
+FTA 3: liberi tentati per fallo su tiro da tre (non and-one)
+FT 0/2: numero di viaggi in lunetta finiti 0/2
+FT 0/3: numero di viaggi in lunetta finiti 0/3
+LTOV: palle perse vive
+DTOV: palle perse morte
+}}
+type data.Row =
+  { team : Optional Text
+  , opponent : Optional Text
+  , league : Optional Text
+  , season : Optional Text
+  , matchDate : Optional Text
+  , matchRound : Optional Nat
+  , phase : Optional Text
+  , location : Optional Text
+  , outcome : Optional Text
+  , min : Optional Nat
+  , pts : Optional Nat
+  , twoPm : Optional Nat
+  , twoPa : Optional Nat
+  , twoPct : Optional Float
+  , threePm : Optional Nat
+  , threePa : Optional Nat
+  , threePct : Optional Float
+  , fgm : Optional Nat
+  , fga : Optional Nat
+  , fgPct : Optional Float
+  , ftm : Optional Nat
+  , fta : Optional Nat
+  , ftPct : Optional Float
+  , orb : Optional Nat
+  , drb : Optional Nat
+  , trb : Optional Nat
+  , ast : Optional Nat
+  , tov : Optional Nat
+  , st : Optional Nat
+  , blk : Optional Nat
+  , pf : Optional Nat
+  , df : Optional Nat
+  , eff : Optional Nat
+  , plusMinus : Optional Int
+  , poss : Optional Nat
+  , pace : Optional Float
+  , offRtg : Optional Float
+  , defRtg : Optional Float
+  , netRtg : Optional Float
+  , efgPct : Optional Float
+  , tsPct : Optional Float
+  , rimFreq : Optional Float
+  , rimPps : Optional Float
+  , paintFreq : Optional Float
+  , paintPps : Optional Float
+  , midFreq : Optional Float
+  , midPps : Optional Float
+  , c3Freq : Optional Float
+  , c3Pps : Optional Float
+  , l3Freq : Optional Float
+  , l3Pps : Optional Float
+  , ftFreq : Optional Float
+  , tovPct : Optional Float
+  , lTovPct : Optional Float
+  , dTovPct : Optional Float
+  , astPct : Optional Float
+  , ast2pPct : Optional Float
+  , ast3pPct : Optional Float
+  , astFtPct : Optional Float
+  , astRatio : Optional Float
+  , orbPct : Optional Float
+  , orb2pPct : Optional Float
+  , orb3pPct : Optional Float
+  , orbFtPct : Optional Float
+  , drbPct : Optional Float
+  , drb2pPct : Optional Float
+  , drb3pPct : Optional Float
+  , drbFtPct : Optional Float
+  , trbPct : Optional Float
+  , stPct : Optional Float
+  , blkPct : Optional Float
+  , blk2pPct : Optional Float
+  , blk3pPct : Optional Float
+  , kills : Optional Nat
+  }
+
+data.rowsFromHtml : Text -> Either Text [data.Row]
+data.rowsFromHtml html =
+  rows =
+    Soup.withXML html data.rowsFromSoup
+  match rows with
+    Left err -> Left err
+    Right [] -> Left "No team table found"
+    Right rs -> Right rs
+
+data.rowsFromFile : FilePath ->{IO, Exception} [data.Row]
+data.rowsFromFile path =
+  use Exception raiseFailure
+  html = readFileUtf8 path
+  match data.rowsFromHtml html with
+    Left err -> raiseFailure (typeLink Text) err ()
+    Right rs -> rs
+
+data.cellText : Soup ->{Throw XMLError} Text
+data.cellText node =
+  texts = Soup.trimmedTexts node
+  Text.trim (Text.join " " texts)
+
+data.textAt : Nat -> [Text] -> Optional Text
+data.textAt index cells =
+  cells
+    |> List.at index
+    |> Optional.map Text.trim
+    |> Optional.filter (t -> t != "")
+
+data.parseNat : Optional Text -> Optional Nat
+data.parseNat = Optional.flatMap Text.toNat
+
+data.parseInt : Optional Text -> Optional Int
+data.parseInt = Optional.flatMap Text.toInt
+
+data.parseFloat : Optional Text -> Optional Float
+data.parseFloat = Optional.flatMap (t -> Float.fromText (Text.trim t))
+
+data.parsePercent : Optional Text -> Optional Float
+data.parsePercent = Optional.flatMap data.parsePercentText
+
+data.parsePercentText : Text -> Optional Float
+data.parsePercentText t =
+  trimmed = Text.trim t
+  base =
+    if Text.endsWith "%" trimmed then
+      Text.dropEnd 1 trimmed
+    else
+      trimmed
+  Float.fromText base
+    |> Optional.map (f -> f Float./ 100.0)
+
+data.rowFromCells : [Text] -> data.Row
+data.rowFromCells cells =
+  textAt index = data.textAt index cells
+  natAt index = data.parseNat (textAt index)
+  intAt index = data.parseInt (textAt index)
+  floatAt index = data.parseFloat (textAt index)
+  pctAt index = data.parsePercent (textAt index)
+  data.Row.Row
+    (textAt 1)
+    (textAt 2)
+    (textAt 3)
+    (textAt 4)
+    (textAt 5)
+    (natAt 6)
+    (textAt 7)
+    (textAt 8)
+    (textAt 9)
+    (natAt 10)
+    (natAt 11)
+    (natAt 12)
+    (natAt 13)
+    (pctAt 14)
+    (natAt 15)
+    (natAt 16)
+    (pctAt 17)
+    (natAt 18)
+    (natAt 19)
+    (pctAt 20)
+    (natAt 21)
+    (natAt 22)
+    (pctAt 23)
+    (natAt 24)
+    (natAt 25)
+    (natAt 26)
+    (natAt 27)
+    (natAt 28)
+    (natAt 29)
+    (natAt 30)
+    (natAt 31)
+    (natAt 32)
+    (natAt 33)
+    (intAt 34)
+    (natAt 35)
+    (floatAt 36)
+    (floatAt 37)
+    (floatAt 38)
+    (floatAt 39)
+    (pctAt 40)
+    (pctAt 41)
+    (pctAt 42)
+    (floatAt 43)
+    (pctAt 44)
+    (floatAt 45)
+    (pctAt 46)
+    (floatAt 47)
+    (pctAt 48)
+    (floatAt 49)
+    (pctAt 50)
+    (floatAt 51)
+    (pctAt 52)
+    (pctAt 53)
+    (pctAt 54)
+    (pctAt 55)
+    (pctAt 56)
+    (pctAt 57)
+    (pctAt 58)
+    (pctAt 59)
+    (floatAt 60)
+    (pctAt 61)
+    (pctAt 62)
+    (pctAt 63)
+    (pctAt 64)
+    (pctAt 65)
+    (pctAt 66)
+    (pctAt 67)
+    (pctAt 68)
+    (pctAt 69)
+    (pctAt 70)
+    (pctAt 71)
+    (pctAt 72)
+    (pctAt 73)
+    (natAt 74)
+
+data.rowsFromSoup : Soup ->{Each, Throw XMLError} data.Row
+data.rowsFromSoup root =
+  table =
+    Each.observe do
+      root
+        |> Soup.descendants
+        |> Soup.matchName (name -> name == "table")
+        |> Soup.withAttribute "id" (Text.startsWith "team-")
+  match table with
+    None -> Each.fail ()
+    Some t ->
+      tbody = Soup.findFirst "tbody" t
+      tr = tbody |> Soup.childTags |> Soup.matchName (name -> name == "tr")
+      cells =
+        Each.toList do
+          td = tr |> Soup.childTags |> Soup.matchName (name -> name == "td")
+          data.cellText td
+      data.rowFromCells cells
+
+
+data.io.tests.data : '{IO, Exception} [Result]
+data.io.tests.data = do
+  rows = data.rowsFromFile (FilePath "page.html")
+  threePer = Optional.toGenericException ((Row.threePct  (Optional.toGenericException ( List.at 1 rows)))) 
+  ensure (assertEquals threePer 0.419)
+  check ((List.size rows) == 2)
