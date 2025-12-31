@@ -5,8 +5,8 @@ type fetch.Params =
   , opponent : [Nat]
   , outcome : Optional Text
   , location : Optional Text
-  , from : Text
-  , to : Text
+  , from : Optional Text
+  , to : Optional Text
   , limit : Nat
   }
 
@@ -25,8 +25,8 @@ fetch.paramsQuery params =
     |> addList "opponent[]" (List.map Nat.toText (Params.opponent params))
     |> addOptional "outcome" (Params.outcome params)
     |> addOptional "location" (Params.location params)
-    |> addParam "from" (Params.from params)
-    |> addParam "to" (Params.to params)
+    |> addOptional "from" (Params.from params)
+    |> addOptional "to" (Params.to params)
     |> addParam "limit" (Nat.toText (Params.limit params))
 
 fetch.uri : fetch.Params -> URI
@@ -75,8 +75,8 @@ fetch.tests.getIsSuccess = do
         [55]
         None
         None
-        "2023-09-01"
-        "2024-08-01"
+        (Some "2023-09-01")
+        (Some "2024-08-01")
         100
     resp = fetch.get params
     check (isSuccess resp)

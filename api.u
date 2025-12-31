@@ -21,8 +21,8 @@ api.paramsSchema =
     opponent = requiredField (Schema.list Schema.nat) "opponent" Params.opponent
     outcome = optionalField Schema.text "outcome" Params.outcome
     location = optionalField Schema.text "location" Params.location
-    from = requiredField Schema.text "from" Params.from
-    to = requiredField Schema.text "to" Params.to
+    from = optionalField Schema.text "from" Params.from
+    to = optionalField Schema.text "to" Params.to
     limit = requiredField Schema.nat "limit" Params.limit
     ProductSchematic.absorb do
       Params.Params
@@ -239,6 +239,7 @@ api.statsQuery = do
         rows
   match result with
     Left failure ->
+      printLine ("Internal error " ++ (Failure.message failure))
       response = ErrorResponse.ErrorResponse (Failure.message failure)
       status = Status 500 "Internal Server Error"
       Route.respond.status.json status (JsonWriter.run api.errorResponseWriter response)
